@@ -131,12 +131,7 @@ def build_index(input_path: str):
 
 
 def retrieve_chunks(query: str, top_k: int = 5, model=None, client=None) -> list[dict]:
-    """Return top-k chunks for a query as plain dicts, with no printing.
-
-    Other modules (like the inference layer) should call this directly
-    rather than the CLI-oriented search() below. Pass in an existing
-    model/client to avoid reloading them on every call.
-    """
+    """Return top-k chunks for a query, giving a small boost to the newest filing."""
     if model is None:
         model = get_model()
     if client is None:
@@ -146,18 +141,34 @@ def retrieve_chunks(query: str, top_k: int = 5, model=None, client=None) -> list
     response = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_vector,
-        limit=top_k,
+        limit=top_k * 4,  # fetch extra, then re-rank
     )
+    hits = response.points
+    if not hits:
+        return []
+
+    # Find the newest filing date for each company
+    latest = {}
+    for h in hits:
+        t, d = h.payload["ticker"], h.payload["filing_date"]
+        latest[t] = max(latest.get(t, d), d)
+
+    # Give chunks from the newest filing a small bonus
+    def adjusted(h):
+        bonus = 0.03 if h.payload["filing_date"] == latest[h.payload["ticker"]] else 0.0
+        return h.score + bonus
+
+    hits = sorted(hits, key=adjusted, reverse=True)[:top_k]
     return [
         {
-            "text": hit.payload["text"],
-            "ticker": hit.payload["ticker"],
-            "form": hit.payload["form"],
-            "filing_date": hit.payload["filing_date"],
-            "chunk_index": hit.payload["chunk_index"],
-            "score": hit.score,
+            "text": h.payload["text"],
+            "ticker": h.payload["ticker"],
+            "form": h.payload["form"],
+            "filing_date": h.payload["filing_date"],
+            "chunk_index": h.payload["chunk_index"],
+            "score": adjusted(h),
         }
-        for hit in response.points
+        for h in hits
     ]
 
 
