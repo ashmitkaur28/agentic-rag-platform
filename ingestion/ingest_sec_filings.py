@@ -25,7 +25,7 @@ import requests
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-USER_AGENT = "Agentic RAG Platform farhanshariff744@gmail.com"  # <-- replace this
+USER_AGENT = "Agentic RAG Platform ashmitkhanspal@gmail.com"
 HEADERS = {"User-Agent": USER_AGENT}
 TICKER_LOOKUP_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
