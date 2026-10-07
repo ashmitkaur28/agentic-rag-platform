@@ -1,0 +1,8 @@
+{
+	"mcpServers": {
+		"agentic-rag": {
+			"url": "https://agentic-rag-platform-ttsx.onrender.com/mcp",
+			"type": "http"
+		}
+	}
+}
