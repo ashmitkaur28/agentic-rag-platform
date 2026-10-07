@@ -24,6 +24,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi_mcp import FastApiMCP
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -81,7 +82,16 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/ask", response_model=AskResponse)
+@app.post(
+    "/ask",
+    response_model=AskResponse,
+    operation_id="ask_filings_question",
+    summary="Ask a question about company SEC filings",
+    description=(
+        "Answers questions about companies using their SEC EDGAR filings "
+        "(hybrid retrieval + guardrails). Returns the answer and the filing sources used."
+    ),
+)
 def ask(request: AskRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="question cannot be empty")
@@ -100,3 +110,15 @@ def ask(request: AskRequest):
         used_retrieval=result["needs_retrieval"],
         from_cache=result["from_cache"],
     )
+
+
+# --- MCP server -------------------------------------------------------------
+# Exposes /ask as an MCP tool at /mcp so MCP clients (GitHub Copilot in VS Code,
+# Copilot Studio, etc.) can call this API as a tool. Only /ask is exposed.
+mcp = FastApiMCP(
+    app,
+    name="Agentic RAG Platform",
+    description="Ask questions about companies using their SEC filings.",
+    include_operations=["ask_filings_question"],
+)
+mcp.mount_http()
