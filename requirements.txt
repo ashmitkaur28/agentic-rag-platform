@@ -154,3 +154,5 @@ wrapt==2.4.0
 xxhash==4.0.1
 yarl==1.24.5
 zstandard==0.25.0
+fastapi-mcp==0.4.0
+mcp==1.30.0
